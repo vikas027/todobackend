@@ -1,0 +1,2 @@
+# Ignore Pythong virtual environment (~/docker-ansible/todobackend/venv)
+venv

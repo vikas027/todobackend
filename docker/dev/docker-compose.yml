@@ -1,0 +1,56 @@
+# Test Container
+test:
+  build: ../../
+  dockerfile: docker/dev/Dockerfile
+  volumes_from:
+    - cache
+  # links automatically add /etc/hosts entry in the container
+  links:
+    - db
+  environment:
+    DJANGO_SETTINGS_MODULE: todobackend.settings.test
+    MYSQL_HOST: db
+    MYSQL_USER: root
+    MYSQL_PASSWORD: password
+    TEST_OUTPUT_DIR: /reports
+
+# Build Cache
+builder:
+  build: ../../
+  dockerfile: docker/dev/Dockerfile
+  volumes:
+    - ../../target:/wheelhouse
+  volumes_from:
+    - cache
+  entrypoint: "entrypoint.sh"
+  command: ["pip", "wheel", "--no-index", "-f /build", "."]
+
+# Agent to probe MySql
+agent:
+  image: vikas027/ansible
+  volumes:
+    - ../../ansible/probe.yml:/ansible/site.yml
+  # Force it to start before database
+  links:
+    - db
+  environment:
+    PROBE_HOST: "db"
+    PROBE_PORT: "3306"
+
+# DB Container
+db:
+  image: mysql:5.6
+  hostname: db
+  expose:
+    - "3306"
+  environment:
+    MYSQL_ROOT_PASSWORD: password
+
+# Cache Volume Container
+cache:
+  build: ../../
+  dockerfile: docker/dev/Dockerfile
+  volumes:
+    - /tmp/cache:/cache
+    - /build
+  entrypoint: "true"

@@ -1,0 +1,74 @@
+app:
+  build: ../../
+  dockerfile: docker/release/Dockerfile
+  links:
+    - db
+  environment:
+    DJANGO_SETTINGS_MODULE: todobackend.settings.release
+    MYSQL_HOST: db
+    MYSQL_USER: root
+    MYSQL_PASSWORD: password
+  volumes_from:
+    - webroot
+  command:
+      - uwsgi
+      - "--socket /var/www/todobackend/todobackend.sock"
+      - "--chmod-socket=666"
+      - "--module todobackend.wsgi"
+      - "--master"
+      - "--die-on-term"
+
+# Acceptance Test (via nodejs)
+test:
+  image: vikas027/todobackend-specs
+  links:
+    - nginx
+  environment:
+    URL: http://nginx:8000/todos
+    JUNIT_REPORT_PATH: /reports/acceptance.xml
+    JUNIT_REPORT_STACK: 1
+  command: --reporter mocha-jenkins-reporter
+
+# Nginx
+nginx:
+  image: nginx
+  links:
+    - app
+  volumes:
+    - ./todobackend.conf:/etc/nginx/conf.d/todobackend.conf
+  ports:
+    - "8000:8000"
+  volumes_from:
+    - webroot
+
+# Volume container to share the socket file /var/www/todobackend/todobackend.sock
+webroot:
+  build: ../../
+  dockerfile: docker/release/Dockerfile
+  volumes:
+    - /var/www/todobackend
+  entrypoint: "true"
+
+
+# DB Container
+db:
+  image: mysql:5.6
+  expose:
+    - "3306"
+  environment:
+    MYSQL_DATABASE: todobackend
+    MYSQL_USER: todo
+    MYSQL_PASSWORD: password
+    MYSQL_ROOT_PASSWORD: password
+
+# Agent to probe MySql
+agent:
+  image: vikas027/ansible
+  volumes:
+    - ../../ansible/probe.yml:/ansible/site.yml
+  # Force it to start before database
+  links:
+    - db
+  environment:
+    PROBE_HOST: db
+    PROBE_PORT: 3306

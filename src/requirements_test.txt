@@ -1,0 +1,2 @@
+# This will look in extras_require section of ~/docker-ansible/todobackend/src/setup.py
+-e .[test]
