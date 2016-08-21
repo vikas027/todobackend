@@ -21,6 +21,7 @@ checkout scm
         }
         sh 'make publish'
 
+/*
         stage 'Deploy release'
         sh "printf \$(git rev-parse --short HEAD) > tag.tmp"
         def imageTag = readFile 'tag.tmp'
@@ -29,6 +30,7 @@ checkout scm
             name: 'IMAGE_TAG',
             value: 'vikas027/todobackend:' + imageTag
         ]]
+  */
     }
 
     finally {
