@@ -1,2 +1,5 @@
 # Ignore Pythong virtual environment (~/docker-ansible/todobackend/venv)
 venv
+
+# Ignore the reports folder
+reports

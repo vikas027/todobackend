@@ -1,0 +1,60 @@
+version: '2'
+
+volumes:
+  build:
+    # local volumes are created/destroy on each docker workflow. We want to build artifacts for each workflow
+    driver: local
+  cache:
+    # external volumes are not created or deleted by docker-compose. We do not want to delete the pip cache
+    external: true
+
+services:
+  # Test Container
+  test:
+    build: 
+      context: ../../
+      dockerfile: docker/dev/Dockerfile
+ #     args: # useful for adding metadata
+ #       organization: ${ORG_NAME}
+    volumes:
+      - cache:/cache
+      - build:/build
+    # links automatically add /etc/hosts entry in the container
+    links:
+      - db
+    environment:
+      DJANGO_SETTINGS_MODULE: todobackend.settings.test
+      MYSQL_HOST: db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      TEST_OUTPUT_DIR: /reports
+  
+  # Build Cache
+  builder:
+    build: 
+      context: ../../
+      dockerfile: docker/dev/Dockerfile
+    volumes:
+      - build:/build
+    entrypoint: "entrypoint.sh"
+    command: ["pip", "wheel", "--no-index", "-f /build", "."]
+  
+  # Agent to probe MySql
+  agent:
+    image: vikas027/ansible
+    # Force it to start before database
+    links:
+      - db
+    environment:
+      PROBE_HOST: "db"
+      PROBE_PORT: "3306"
+    command: ["probe.yml"]
+  
+  # DB Container
+  db:
+    image: mysql:5.6
+    hostname: db
+    expose:
+      - "3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password

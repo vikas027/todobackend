@@ -18,8 +18,6 @@ test:
 builder:
   build: ../../
   dockerfile: docker/dev/Dockerfile
-  volumes:
-    - ../../target:/wheelhouse
   volumes_from:
     - cache
   entrypoint: "entrypoint.sh"
@@ -28,14 +26,13 @@ builder:
 # Agent to probe MySql
 agent:
   image: vikas027/ansible
-  volumes:
-    - ../../ansible/probe.yml:/ansible/site.yml
   # Force it to start before database
   links:
     - db
   environment:
     PROBE_HOST: "db"
     PROBE_PORT: "3306"
+  command: ["probe.yml"]
 
 # DB Container
 db:
